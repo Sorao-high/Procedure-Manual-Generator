@@ -3,8 +3,11 @@
 これは、Webブラウザ上で動作する対話形式の作業手順書を簡単に作成するためのツールです。
 コマンドの手動入力によるミスや、作業工程の抜け漏れといったヒューマンエラーを防ぎ、誰でも安全かつ正確に定型業務を遂行することを目指します。
 
-![アプリケーションのスクリーンショット](https://i.imgur.com/your-screenshot-url.png)  
-*(ここにアプリケーションのスクリーンショット画像を挿入することを推奨します)*
+<img width="925" height="815" alt="image" src="https://github.com/user-attachments/assets/5510b807-b9f7-499f-be6c-9124d70f5f12" />
+
+<img width="928" height="844" alt="image" src="https://github.com/user-attachments/assets/a4eac8a9-9ed5-44b8-a473-2f47f7bd5dcb" />
+
+
 
 ## ✨ 主な機能
 
