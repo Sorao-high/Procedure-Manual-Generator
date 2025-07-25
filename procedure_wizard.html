@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウィザード形式 作業手順書</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f9f9f9;
+        }
+        #app {
+            background-color: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h1 { font-size: 2em; text-align: center; }
+        h2 { font-size: 1.5em; margin-top: 40px; }
+        h3 { font-size: 1.2em; margin-top: 30px; border-bottom-style: dotted; }
+
+        /* Progress Indicator */
+        #progress-indicator {
+            display: flex;
+            justify-content: space-around;
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        #progress-indicator li {
+            padding: 10px 15px;
+            color: #aaa;
+            border-bottom: 3px solid transparent;
+            flex-grow: 1;
+            text-align: center;
+        }
+        #progress-indicator li.active {
+            color: #007bff;
+            font-weight: bold;
+            border-bottom-color: #007bff;
+        }
+        #progress-indicator li.completed {
+            color: #28a745;
+        }
+        
+        /* Variable Input */
+        .variable-input-area {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #eef7ff;
+            border: 1px solid #bce8f1;
+            border-radius: 4px;
+        }
+        .variable-group { margin-bottom: 15px; }
+        .variable-group label { font-weight: bold; display: block; margin-bottom: 5px;}
+        .variable-group input {
+            width: calc(100% - 20px);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+        }
+        .add-variable-btn {
+            background-color: #28a745;
+            font-size: 0.9em;
+            padding: 5px 10px;
+        }
+
+        #start-button {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+        }
+
+        /* Procedure Area */
+        #procedure-wrapper { display: none; }
+        .chunk-container { display: none; }
+        .chunk-container.active { display: block; }
+        
+        .chapter-chunk {
+            border-left: 3px solid #007bff;
+            padding-left: 20px;
+            margin-top: 20px;
+        }
+        .task-item {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+        .task-item input[type="checkbox"] { margin-right: 10px; }
+        .task-item.completed label {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .command-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            position: relative;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #777;
+            color: white;
+            padding: 3px 8px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .copy-button:hover { background-color: #555; }
+
+        /* Navigation */
+        .chunk-nav {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .next-chunk-btn {
+            background-color: #28a745;
+            padding: 12px 25px;
+            font-size: 1.1em;
+        }
+        .next-chunk-btn:hover:not(:disabled) { background-color: #218838; }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Completion Area */
+        #completion-message {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background-color: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 8px;
+        }
+        #completion-message h2 { color: #2e7d32; border: none; }
+
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <div id="variable-input-section">
+            <h1>作業手順書</h1>
+            <div id="variable-input-area" class="variable-input-area">
+                <h2>1. 事前準備：変数の入力</h2>
+                <p>作業で使用する変数を入力してください。「+追加」ボタンで入力欄を増やせます。</p>
+                
+                <div class="variable-group">
+                    <label for="customerId">顧客ID (customerId)</label>
+                    <div id="customerId-inputs">
+                        <input type="text" placeholder="例: customerA">
+                    </div>
+                    <button class="add-variable-btn" data-target="customerId-inputs">+追加</button>
+                </div>
+
+                <div class="variable-group">
+                    <label for="aliasName">エイリアス (aliasName)</label>
+                    <div id="aliasName-inputs">
+                        <input type="text" placeholder="例: www.customerA.com">
+                    </div>
+                    <button class="add-variable-btn" data-target="aliasName-inputs">+追加</button>
+                </div>
+
+                <button id="start-button">作業手順を開始</button>
+            </div>
+        </div>
+
+        <div id="procedure-wrapper">
+            <ul id="progress-indicator"></ul>
+            <div id="procedure-area"></div>
+            <div id="completion-message">
+                <h2>🎉 すべての作業が完了しました！</h2>
+                <p>ウィンドウを閉じてください。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- データ定義 ---
+    const procedureData = {
+        title: "Webサーバー設定作業手順",
+        chapters: [
+            {
+                title: "初期設定",
+                chunks: [
+                    {
+                        title: "1.1. ユーザーアカウント作成",
+                        tasks: [
+                            { instruction: "作業用ユーザー `webmaster` を作成します。", command: "useradd webmaster" },
+                            { instruction: "作成したユーザー `webmaster` のパスワードを設定します。", command: "passwd webmaster" }
+                        ]
+                    },
+                    {
+                        title: "1.2. グループ設定",
+                        tasks: [
+                            { instruction: "Web管理者用グループ `webadmin` を作成します。", command: "groupadd webadmin" },
+                            { instruction: "ユーザー `webmaster` をグループ `webadmin` に追加します。", command: "usermod -aG webadmin webmaster" }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "Apacheインストール",
+                chunks: [
+                    {
+                        title: "2.1. パッケージのインストールと起動",
+                        tasks: [
+                            { instruction: "Apache (httpd) をインストールします。", command: "sudo yum install -y httpd" },
+                            { instruction: "Apacheサービスを起動し、自動起動を有効化します。", command: "sudo systemctl start httpd && sudo systemctl enable httpd" }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "バーチャルホスト設定",
+                chunks: [
+                    {
+                        title: "3.1. 顧客用ディレクトリ作成",
+                        tasks: [
+                            { instruction: "顧客ごとのドキュメントルートディレクトリを作成します。", command: "sudo mkdir -p /var/www/html/{{customerId}}" }
+                        ]
+                    },
+                    {
+                        title: "3.2. 顧客用設定ファイルの作成",
+                        tasks: [
+                             { instruction: "顧客ごとの設定ファイルを作成し、ドメインとエイリアスを設定します。", command: "echo 'ServerName {{customerId}}.example.com\nServerAlias {{aliasName}}' | sudo tee /etc/httpd/conf.d/{{customerId}}.conf" }
+                        ]
+                    },
+                     {
+                        title: "3.3. Apacheの再起動",
+                        tasks: [
+                            { instruction: "設定を反映させるためにApacheを再起動します。", command: "sudo systemctl restart httpd" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+
+    // --- アプリケーションのロジック ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- State ---
+        let state = {
+            currentChunkIndex: 0,
+            totalChunks: 0,
+            variables: {},
+            allChunks: []
+        };
+
+        // --- DOM Elements ---
+        const variableInputSection = document.getElementById('variable-input-section');
+        const procedureWrapper = document.getElementById('procedure-wrapper');
+        const startButton = document.getElementById('start-button');
+        const procedureArea = document.getElementById('procedure-area');
+        const progressIndicator = document.getElementById('progress-indicator');
+        const completionMessage = document.getElementById('completion-message');
+
+        // --- Event Listeners ---
+        document.querySelector('.variable-input-area').addEventListener('click', (e) => {
+            if (e.target.classList.contains('add-variable-btn')) {
+                const targetId = e.target.dataset.target;
+                const targetDiv = document.getElementById(targetId);
+                const newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.placeholder = targetDiv.firstElementChild.placeholder;
+                targetDiv.appendChild(newInput);
+            }
+        });
+
+        startButton.addEventListener('click', () => {
+            collectVariables();
+            initializeProcedure();
+            variableInputSection.style.display = 'none';
+            procedureWrapper.style.display = 'block';
+        });
+
+        procedureArea.addEventListener('click', (e) => {
+            // Copy button
+            if (e.target.classList.contains('copy-button')) {
+                const commandBlock = e.target.previousElementSibling;
+                navigator.clipboard.writeText(commandBlock.textContent).then(() => {
+                    e.target.textContent = 'コピー完了!';
+                    setTimeout(() => { e.target.textContent = 'コピー'; }, 2000);
+                });
+            }
+            // Next button
+            if (e.target.classList.contains('next-chunk-btn')) {
+                goToNextChunk();
+            }
+        });
+
+        procedureArea.addEventListener('change', (e) => {
+            // Task checkbox
+            if (e.target.classList.contains('task-checkbox')) {
+                const taskItem = e.target.closest('.task-item');
+                taskItem.classList.toggle('completed', e.target.checked);
+                checkChunkCompletion(taskItem.closest('.chunk-container'));
+            }
+        });
+
+        // --- Functions ---
+        function collectVariables() {
+            state.variables['customerId'] = Array.from(document.querySelectorAll('#customerId-inputs input')).map(input => input.value.trim()).filter(v => v);
+            state.variables['aliasName'] = Array.from(document.querySelectorAll('#aliasName-inputs input')).map(input => input.value.trim()).filter(v => v);
+        }
+
+        function initializeProcedure() {
+            // 1. Flatten all chunks into a single array
+            let chunkCounter = 0;
+            procedureData.chapters.forEach((chapter, chapterIndex) => {
+                chapter.chunks.forEach((chunk, chunkIndex) => {
+                    state.allChunks.push({
+                        ...chunk,
+                        id: `chunk-container-${chunkCounter}`,
+                        chapterTitle: chapter.title,
+                        chapterIndex: chapterIndex
+                    });
+                    chunkCounter++;
+                });
+                // Add progress indicator item
+                const li = document.createElement('li');
+                li.textContent = `${chapterIndex + 1}. ${chapter.title}`;
+                li.dataset.chapterIndex = chapterIndex;
+                progressIndicator.appendChild(li);
+            });
+            state.totalChunks = state.allChunks.length;
+
+            // 2. Generate HTML for all chunks
+            procedureArea.innerHTML = state.allChunks.map(chunk => generateChunkHtml(chunk)).join('');
+
+            // 3. Show the first chunk
+            showCurrentChunk();
+        }
+        
+        function generateChunkHtml(chunkData) {
+            let tasksHtml = '<ul class="task-list">';
+            chunkData.tasks.forEach((task) => {
+                const command = task.command;
+                const needsVariable = command.includes('{{');
+
+                if (needsVariable) {
+                    const varNames = command.match(/{{(\w+)}}/g).map(v => v.replace(/[{}]/g, ''));
+                    const loopCount = Math.max(...varNames.map(name => state.variables[name] ? state.variables[name].length : 0));
+                    
+                    if (loopCount > 0) {
+                        for (let i = 0; i < loopCount; i++) {
+                            let populatedCommand = command;
+                            let instructionSuffix = [];
+                            varNames.forEach(name => {
+                                const value = state.variables[name] && state.variables[name][i] ? state.variables[name][i] : `[${name} 未入力]`;
+                                populatedCommand = populatedCommand.replace(new RegExp(`{{${name}}}`, 'g'), value);
+                                instructionSuffix.push(`${name}: ${value}`);
+                            });
+                            tasksHtml += generateTaskItem(`${task.instruction} (${instructionSuffix.join(', ')})`, populatedCommand);
+                        }
+                    } else {
+                        tasksHtml += generateTaskItem(task.instruction, command); // Render as is if no variable values provided
+                    }
+                } else {
+                    tasksHtml += generateTaskItem(task.instruction, task.command);
+                }
+            });
+            tasksHtml += '</ul>';
+
+            return `
+                <div class="chunk-container" id="${chunkData.id}" data-chapter-index="${chunkData.chapterIndex}">
+                    <div class="chapter-chunk">
+                        <h3>${chunkData.title}</h3>
+                        ${tasksHtml}
+                    </div>
+                    <div class="chunk-nav">
+                        <button class="next-chunk-btn" disabled>作業完了、次へ進む →</button>
+                    </div>
+                </div>`;
+        }
+
+        function generateTaskItem(instruction, command) {
+             return `
+                <li class="task-item">
+                    <label><input type="checkbox" class="task-checkbox">${instruction}</label>
+                    <div class="command-block">
+                        <code>${command}</code>
+                        <button class="copy-button">コピー</button>
+                    </div>
+                </li>`;
+        }
+
+        function showCurrentChunk() {
+            // Hide previous chunk if it exists
+            const prevChunk = document.querySelector('.chunk-container.active');
+            if (prevChunk) prevChunk.classList.remove('active');
+
+            // Show current chunk
+            const currentChunkData = state.allChunks[state.currentChunkIndex];
+            const currentChunkEl = document.getElementById(currentChunkData.id);
+            currentChunkEl.classList.add('active');
+
+            // Update progress indicator
+            document.querySelectorAll('#progress-indicator li').forEach(li => {
+                const chapterIndex = parseInt(li.dataset.chapterIndex, 10);
+                if (chapterIndex < currentChunkData.chapterIndex) {
+                    li.classList.add('completed');
+                    li.classList.remove('active');
+                } else if (chapterIndex === currentChunkData.chapterIndex) {
+                    li.classList.add('active');
+                    li.classList.remove('completed');
+                } else {
+                     li.classList.remove('active', 'completed');
+                }
+            });
+        }
+        
+        function checkChunkCompletion(chunkContainer) {
+            const tasks = chunkContainer.querySelectorAll('.task-checkbox');
+            const allTasksCompleted = Array.from(tasks).every(cb => cb.checked);
+            const nextButton = chunkContainer.querySelector('.next-chunk-btn');
+            if (nextButton) {
+                nextButton.disabled = !allTasksCompleted;
+            }
+        }
+
+        function goToNextChunk() {
+            state.currentChunkIndex++;
+            if (state.currentChunkIndex < state.totalChunks) {
+                showCurrentChunk();
+            } else {
+                showCompletion();
+            }
+        }
+        
+        function showCompletion() {
+            procedureArea.style.display = 'none';
+            completionMessage.style.display = 'block';
+            
+            // Mark final chapter as completed
+            const lastIndicator = progressIndicator.lastElementChild;
+            if(lastIndicator) {
+                lastIndicator.classList.remove('active');
+                lastIndicator.classList.add('completed');
+            }
+        }
+    });
+    </script>
+</body>
+</html>
